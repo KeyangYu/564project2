@@ -48,6 +48,14 @@ struct prefetcher {
 
     // Use this pointer to store any data that the prefetcher needs.
     void *data;
+    int amount;
+};
+
+//construct a struct for stride prefetcher
+struct stride_prefetcher {
+    uint32_t prev_addr;
+    int32_t stride;
+    uint32_t amount;
 };
 
 // Constructors for each of the replacement policies.

@@ -41,6 +41,7 @@ enum cache_status {
 struct cache_line {
     uint32_t tag;
     enum cache_status status;
+    int data;
 };
 
 // This is a linked list struct for the hash table to keep track of what lines

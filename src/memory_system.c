@@ -15,9 +15,9 @@ struct cache_system *cache_system_new(uint32_t line_size, uint32_t sets, uint32_
     cs->stats = stats;
 
     // TODO: calculate the index bits, offset bits and tag bits.
-    cs->index_bits = 0;
-    cs->offset_bits = 0;
-    cs->tag_bits = 0;
+    cs->index_bits = log(sets)/log(2);
+    cs->offset_bits = log(line_size)/log(2);
+    cs->tag_bits = 32 - cs->index_bits - cs->offset_bits;
 
     cs->offset_mask = 0xffffffff >> (32 - cs->offset_bits);
     cs->set_index_mask = 0xffffffff >> cs->tag_bits;
@@ -40,6 +40,12 @@ struct cache_system *cache_system_new(uint32_t line_size, uint32_t sets, uint32_
 
     // Allocate space to keep track of which lines were accessed.
     cs->accessed_lines_hashtable = calloc(ACCESSED_HASHTABLE_SIZE, sizeof(struct accessed_line *));
+    //--------
+    cs->cache_lines = calloc(cs->num_sets * cs->associativity, sizeof(struct cache_line));
+    for(int i = 0; i < (cs->num_sets * cs->associativity); i++){
+    	cs->cache_lines[i].data = 0;
+    	}
+    //--------
     return cs;
 }
 
@@ -95,7 +101,7 @@ int cache_system_mem_access(struct cache_system *cache_system, uint32_t address,
             // An eviction is necessary. Call the replacement policy's eviction
             // index function.
             int evicted_index = (*cache_system->replacement_policy->eviction_index)(
-                cache_system->replacement_policy, cache_system, set_idx);
+                cache_system->replacement_policy, cache_system, set_idx, tag); //added tag here to pass Also added in rep.h and all 3 eviction function.
 
             // Check to ensure that the eviction index is within the set.
             if (evicted_index < 0 || cache_system->associativity <= evicted_index) {
@@ -171,6 +177,26 @@ struct cache_line *cache_system_find_cache_line(struct cache_system *cache_syste
 {
     // TODO Return a pointer to the cache line within the given set that has
     // the given tag. If no such element exists, then return NULL.
+    int set_start = set_idx * cache_system->associativity;
+    struct cache_line *start = &cache_system->cache_lines[set_start];
 
-    return NULL;
+    int offset = -1;
+
+    for (int i = 0; start + i < start + cache_system->associativity; i++)
+    {
+        if((start + i)->tag == tag)
+        {
+            offset = i;
+            break;
+        }
+    }
+    if (offset > -1)
+    {
+        return(start + offset);
+    }
+    else
+    {
+        return NULL;
+    }
+
 }

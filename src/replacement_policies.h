@@ -36,7 +36,7 @@ struct replacement_policy {
     //  * set_idx: the index of the set that needs a cache line evicted.
     // Returns: the index within the set to evict
     uint32_t (*eviction_index)(struct replacement_policy *replacement_policy,
-                               struct cache_system *cache_system, uint32_t set_idx);
+                               struct cache_system *cache_system, uint32_t set_idx, uint32_t tag);
 
     // This function is called whenever a cache line is accessed and can be
     // used to update the state of the replacement policy.

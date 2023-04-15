@@ -32,7 +32,15 @@ uint32_t sequential_handle_mem_access(struct prefetcher *prefetcher,
                                       bool is_miss)
 {
     // TODO: Return the number of lines that were prefetched.
-    return 0;
+
+    uint32_t amt = prefetcher->amount;
+    
+    for (int i = 0; i <=amt; i++)
+    {
+        cache_system_mem_access(cache_system, address + i * (cache_system->line_size), 'r', 1);
+    }
+
+    return amt;
 }
 
 void sequential_cleanup(struct prefetcher *prefetcher)
@@ -46,6 +54,7 @@ struct prefetcher *sequential_prefetcher_new(uint32_t prefetch_amount)
     struct prefetcher *sequential_prefetcher = calloc(1, sizeof(struct prefetcher));
     sequential_prefetcher->handle_mem_access = &sequential_handle_mem_access;
     sequential_prefetcher->cleanup = &sequential_cleanup;
+    sequential_prefetcher->amount = prefetch_amount;
 
     // TODO allocate any additional memory needed to store metadata here and
     // assign to sequential_prefetcher->data.
@@ -61,8 +70,11 @@ uint32_t adjacent_handle_mem_access(struct prefetcher *prefetcher,
 {
     // TODO perform the necessary prefetches for the adjacent strategy.
 
+    uint32_t pre_index = address + cache_system->line_size;
+    cache_system_mem_access(cache_system, pre_index, 'r', 1);
+
     // TODO: Return the number of lines that were prefetched.
-    return 0;
+    return 1;
 }
 
 void adjacent_cleanup(struct prefetcher *prefetcher)
@@ -90,8 +102,27 @@ uint32_t custom_handle_mem_access(struct prefetcher *prefetcher, struct cache_sy
 {
     // TODO perform the necessary prefetches for your custom strategy.
 
+    struct stride_prefetcher *sp = (struct stride_prefetcher *)prefetcher->data;
+    uint32_t num_prefetched = 0;
+
+    if (is_miss && sp->prev_addr != 0) {
+        int32_t new_stride = address - sp->prev_addr;
+        if (new_stride == sp->stride) {
+            uint32_t N = sp->amount;
+            for (int i = 1; i <= N; i++) {
+                uint32_t next_addr = address + i * sp->stride;
+                cache_system_mem_access(cache_system, next_addr, 'r', 1);
+                num_prefetched++;
+            }
+        }
+        sp->prev_addr = address;
+        sp->stride = new_stride;
+    } else {
+        sp->prev_addr = address;
+    }
+
     // TODO: Return the number of lines that were prefetched.
-    return 0;
+    return num_prefetched;
 }
 
 void custom_cleanup(struct prefetcher *prefetcher)
